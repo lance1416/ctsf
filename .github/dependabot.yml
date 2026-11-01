@@ -1,0 +1,71 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      cargo-updates:
+        applies-to: version-updates
+        patterns: ['*']
+      cargo-security-updates:
+        applies-to: security-updates
+        patterns: ['*']
+    pull-request-branch-name:
+      prefix: chore
+      template: '{prefix}/cargo-updates'
+      separator: '/'
+      word-separator: '-'
+      branch-name-case: lowercase
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      actions-updates:
+        applies-to: version-updates
+        patterns: ['*']
+      actions-security-updates:
+        applies-to: security-updates
+        patterns: ['*']
+    pull-request-branch-name:
+      prefix: ci
+      template: '{prefix}/actions-updates'
+      separator: '/'
+      word-separator: '-'
+      branch-name-case: lowercase
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Europe/London
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      toolchain-updates:
+        applies-to: version-updates
+        patterns: ['*']
+      toolchain-security-updates:
+        applies-to: security-updates
+        patterns: ['*']
+    pull-request-branch-name:
+      prefix: chore
+      template: '{prefix}/toolchain-updates'
+      separator: '/'
+      word-separator: '-'
+      branch-name-case: lowercase

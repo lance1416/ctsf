@@ -1,0 +1,360 @@
+{
+  "version": 1,
+  "note": "Prepared inputs only. Policy execution waits for SETUP-B handoff and the lead's next instruction. History root uses an all-zero base; empty range must explicitly report zero examined commits in later acceptance evidence. Synthetic PR refs, shallow clone, unborn repository and CI orchestration remain checklist cases.",
+  "messages": [
+    {
+      "id": "message-valid-feat",
+      "value": "feat: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-fix",
+      "value": "fix: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-perf",
+      "value": "perf: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-refactor",
+      "value": "refactor: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-docs",
+      "value": "docs: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-test",
+      "value": "test: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-build",
+      "value": "build: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-ci",
+      "value": "ci: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-chore",
+      "value": "chore: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-style",
+      "value": "style: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-valid-revert",
+      "value": "revert: prepare setup\n",
+      "accept": true
+    },
+    {
+      "id": "message-scoped",
+      "value": "chore(repo): scaffold project tooling\n",
+      "accept": true
+    },
+    {
+      "id": "message-breaking",
+      "value": "feat!: update kernel contract\n",
+      "accept": true
+    },
+    {
+      "id": "message-scoped-breaking",
+      "value": "feat(kernel)!: update contract\n",
+      "accept": true
+    },
+    {
+      "id": "message-without-line-ending",
+      "value": "fix: correct cancellation",
+      "accept": true
+    },
+    {
+      "id": "message-utf8",
+      "value": "docs: 补充开发说明\n",
+      "accept": true
+    },
+    {
+      "id": "message-missing-type",
+      "value": "prepare setup\n",
+      "accept": false
+    },
+    {
+      "id": "message-unknown-type",
+      "value": "feature: prepare setup\n",
+      "accept": false
+    },
+    {
+      "id": "message-uppercase-type",
+      "value": "Feat: prepare setup\n",
+      "accept": false
+    },
+    {
+      "id": "message-empty-subject",
+      "value": "feat: \n",
+      "accept": false
+    },
+    {
+      "id": "message-missing-colon",
+      "value": "feat prepare setup\n",
+      "accept": false
+    },
+    {
+      "id": "message-body",
+      "value": "feat: prepare setup\n\nDetails.\n",
+      "accept": false
+    },
+    {
+      "id": "message-second-line",
+      "value": "feat: prepare setup\nDetails.\n",
+      "accept": false
+    },
+    {
+      "id": "message-footer",
+      "value": "feat!: prepare setup\n\nBREAKING CHANGE: changed\n",
+      "accept": false
+    },
+    {
+      "id": "message-coauthor",
+      "value": "chore: setup\n\nCo-authored-by: Example <example@example.invalid>\n",
+      "accept": false
+    },
+    {
+      "id": "message-coauthor-no-blank",
+      "value": "chore: setup\nCoAuthor: Example\n",
+      "accept": false
+    },
+    {
+      "id": "message-signed-off",
+      "value": "chore: setup\n\nSigned-off-by: Example <example@example.invalid>\n",
+      "accept": false
+    },
+    {
+      "id": "message-leading-blank",
+      "value": "\nchore: setup\n",
+      "accept": false
+    },
+    {
+      "id": "message-empty",
+      "value": "",
+      "accept": false
+    }
+  ],
+  "branches": [
+    {
+      "id": "branch-valid-feat",
+      "value": "feat/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-fix",
+      "value": "fix/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-perf",
+      "value": "perf/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-refactor",
+      "value": "refactor/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-docs",
+      "value": "docs/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-test",
+      "value": "test/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-build",
+      "value": "build/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-ci",
+      "value": "ci/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-chore",
+      "value": "chore/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-style",
+      "value": "style/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-valid-revert",
+      "value": "revert/project-setup",
+      "accept": true
+    },
+    {
+      "id": "branch-main",
+      "value": "main",
+      "accept": true
+    },
+    {
+      "id": "branch-single-word",
+      "value": "feat/kernel",
+      "accept": true
+    },
+    {
+      "id": "branch-digits",
+      "value": "fix/pot-01",
+      "accept": true
+    },
+    {
+      "id": "branch-no-type",
+      "value": "project-setup",
+      "accept": false
+    },
+    {
+      "id": "branch-unknown-type",
+      "value": "feature/project-setup",
+      "accept": false
+    },
+    {
+      "id": "branch-uppercase-type",
+      "value": "Feat/project-setup",
+      "accept": false
+    },
+    {
+      "id": "branch-uppercase-description",
+      "value": "feat/Project-setup",
+      "accept": false
+    },
+    {
+      "id": "branch-underscore",
+      "value": "feat/project_setup",
+      "accept": false
+    },
+    {
+      "id": "branch-space",
+      "value": "feat/project setup",
+      "accept": false
+    },
+    {
+      "id": "branch-double-hyphen",
+      "value": "feat/project--setup",
+      "accept": false
+    },
+    {
+      "id": "branch-leading-hyphen",
+      "value": "feat/-project",
+      "accept": false
+    },
+    {
+      "id": "branch-trailing-hyphen",
+      "value": "feat/project-",
+      "accept": false
+    },
+    {
+      "id": "branch-empty-description",
+      "value": "feat/",
+      "accept": false
+    },
+    {
+      "id": "branch-extra-slash",
+      "value": "feat/project/setup",
+      "accept": false
+    },
+    {
+      "id": "branch-empty",
+      "value": "",
+      "accept": false
+    }
+  ],
+  "histories": [
+    {
+      "id": "history-root-valid",
+      "shape": "root",
+      "messages": [
+        "chore: initialize setup\n"
+      ],
+      "accept": true
+    },
+    {
+      "id": "history-root-body",
+      "shape": "root",
+      "messages": [
+        "chore: initialize setup\n\nBody.\n"
+      ],
+      "accept": false
+    },
+    {
+      "id": "history-linear-valid",
+      "shape": "linear",
+      "messages": [
+        "chore: initialize setup\n",
+        "feat(kernel): add health entry\n",
+        "test: add setup cases\n"
+      ],
+      "accept": true
+    },
+    {
+      "id": "history-earlier-body",
+      "shape": "linear",
+      "messages": [
+        "chore: initialize setup\n",
+        "feat: add health entry\n\nBody.\n",
+        "test: add setup cases\n"
+      ],
+      "accept": false
+    },
+    {
+      "id": "history-earlier-coauthor",
+      "shape": "linear",
+      "messages": [
+        "chore: initialize setup\n",
+        "feat: add health entry\n\nCo-authored-by: Example <example@example.invalid>\n",
+        "test: add setup cases\n"
+      ],
+      "accept": false
+    },
+    {
+      "id": "history-merge-valid-subject",
+      "shape": "merge",
+      "messages": [
+        "chore: initialize setup\n",
+        "feat: left change\n",
+        "fix: right change\n",
+        "chore: combine changes\n"
+      ],
+      "accept": false
+    },
+    {
+      "id": "history-outside-range-invalid",
+      "shape": "linear",
+      "messages": [
+        "not a conventional subject\n",
+        "feat: add health entry\n",
+        "test: add setup cases\n"
+      ],
+      "accept": true
+    },
+    {
+      "id": "history-empty-range",
+      "shape": "empty",
+      "messages": [
+        "chore: initialize setup\n"
+      ],
+      "accept": true
+    }
+  ]
+}
