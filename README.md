@@ -1,8 +1,9 @@
 # CTSF
 
 CTSF is starting with a shared Rust kernel and a macOS native interface. This setup
-contains only a kernel version query and its headless/UniFFI adapters. It does not
-execute transfers. Linux GUI, persistence, scheduling and backup are outside this stage.
+provides stateless version/health queries, a headless probe, and a native SwiftUI
+application connected through UniFFI. It does not execute transfers. Linux GUI,
+persistence, scheduling and backup are outside this stage.
 
 ## Requirements
 
@@ -28,10 +29,11 @@ python3 scripts/dev.py smoke
 python3 scripts/dev.py bindings
 python3 scripts/dev.py swift-format --check
 python3 scripts/dev.py macos-build
+python3 scripts/dev.py macos-smoke
 python3 scripts/git_policy.py local
 ```
 
-For a clean source copy before any initial commit, run
+For a clean source copy, including uncommitted working files, run
 `python3 scripts/source_snapshot.py /absolute/path/to/new-directory`. The destination
 must not exist; when placed inside this repository, use ignored `build/`.
 It copies Git-visible working files without staging or writing Git metadata and
@@ -43,11 +45,14 @@ version-matched generator. Generated Swift/header/modulemap files go to
 `apps/macos/Generated/`; the app must link `target/release/libkernel_ffi.a`.
 The `.dylib` is only a generation input, not an app runtime dependency.
 
-The macOS application is a subsequent setup handoff. Until its shared Xcode project
-and scheme exist, `swift-format` and `macos-build` fail with an explicit prerequisite
-error. They do not report an empty/skip check as a pass. Current CI checks Git policy
-and Rust on macOS/Linux. The native application feature must introduce its native
-CI job together with its sources, using these same commands.
+The native CI job runs the same `swift-format --check`, `macos-build` and
+`macos-smoke` commands. The first checks handwritten Swift style; the second
+regenerates bindings and compiles both handwritten and generated Swift, including
+type/concurrency checks. The smoke statically links the Swift bridge and checks
+the actual kernel version, setup contract and health, repeating both queries 100
+times. Its expected version comes from locked Cargo metadata.
+Missing tools, configuration or sources fail explicitly. Building the app does not
+establish GUI launch or interaction; those checks are recorded separately.
 
 `Cargo.lock` is source-controlled; all repeat builds use `--locked`. Do not run
 dependency updates concurrently in this shared checkout. Build output, generated
@@ -62,17 +67,15 @@ All other remote writes remain reserved for Lance. Small changes integrate into
 Local workflow/Dependabot files do not mean hosted checks have run.
 The user-configured origin is `git@github.com:lance1416/ctsf.git`.
 
-## Native setup handoff
+## Native macOS build
 
-SETUP-C supplies handwritten Swift sources, a shared scheme and
-`apps/macos/build.json` with these required fields (the paths/names below are an
-example for the native owner to choose, not an existing project):
+`apps/macos/build.json` declares the existing Xcode project and shared scheme:
 
 ```json
 {
   "project": "apps/macos/CTSF.xcodeproj",
-  "scheme": "CTSF",
-  "deploymentTarget": "15.0",
+  "scheme": "CTSFSetup",
+  "deploymentTarget": "14.0",
   "swiftVersion": "6"
 }
 ```
@@ -80,6 +83,16 @@ example for the native owner to choose, not an existing project):
 `macos-build` uses the current host architecture, the selected Xcode and SDK,
 Swift 6 with complete concurrency checking and warnings as errors, unsigned
 Debug output in `build/macos/`, and the same deployment target for Rust and Swift.
-The native owner must confirm that target and the static-link settings. No
-deployment support claim follows from the example. Generated Swift is excluded
-from style rewriting but must be compiled by the native target.
+The setup deployment target is not a product support matrix. Generated Swift is
+excluded from style rewriting and compiled by the native target. The app is written
+to `build/macos/Build/Products/Debug/CTSFSetup.app`. See
+[the macOS application notes](apps/macos/README.md) for static linking, direct Xcode
+usage and the separate local launch check. Hosted CI has not been validated by
+this local build.
+
+`macos-smoke` can also run independently: it rebuilds the Rust library, regenerates
+bindings, and compiles `apps/macos/Tests/KernelBridgeSmoke.swift` with Swift 6 and
+complete concurrency checking. It uses the same deployment target and host
+architecture as the app build. Its executable is `build/macos/KernelBridgeSmoke`;
+build, assertion or execution failures return nonzero. This checks bridge values
+without GUI automation and does not establish leak freedom.

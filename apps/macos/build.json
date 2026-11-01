@@ -1,0 +1,6 @@
+{
+  "project": "apps/macos/CTSF.xcodeproj",
+  "scheme": "CTSFSetup",
+  "deploymentTarget": "14.0",
+  "swiftVersion": "6"
+}

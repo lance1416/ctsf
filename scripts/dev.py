@@ -50,7 +50,7 @@ def swift_format(check):
             str(ROOT / ".swift-format"), *map(str, files))
 
 
-def macos_build():
+def macos_config():
     macos()
     config_path = ROOT / "apps/macos/build.json"
     if not config_path.is_file():
@@ -62,6 +62,22 @@ def macos_build():
         raise ValueError("SETUP-C required: configured Xcode project does not exist")
     if config["swiftVersion"] != "6":
         raise ValueError("native setup requires Swift 6 language mode")
+    return config
+
+
+def kernel_version(env=None):
+    metadata = json.loads(run("cargo", "metadata", "--locked", "--no-deps",
+                              "--format-version", "1", capture=True, env=env))
+    version = next((package["version"] for package in metadata["packages"]
+                    if package["name"] == "kernel"), None)
+    if version is None:
+        raise ValueError("Cargo metadata does not contain the kernel package")
+    return version
+
+
+def macos_build():
+    config = macos_config()
+    project = ROOT / config["project"]
     run("xcodebuild", "-version")
     run("swift", "--version")
     run("xcrun", "--sdk", "macosx", "--show-sdk-version")
@@ -76,10 +92,33 @@ def macos_build():
         f"MACOSX_DEPLOYMENT_TARGET={config['deploymentTarget']}", "build", env=build_env)
 
 
+def macos_smoke():
+    config = macos_config()
+    smoke = ROOT / "apps/macos/Tests/KernelBridgeSmoke.swift"
+    if not smoke.is_file():
+        raise ValueError("native bridge smoke source is missing")
+    build_env = os.environ.copy()
+    build_env["MACOSX_DEPLOYMENT_TARGET"] = config["deploymentTarget"]
+    bindings(env=build_env)
+    output = ROOT / "build/macos"
+    output.mkdir(parents=True, exist_ok=True)
+    executable = output / "KernelBridgeSmoke"
+    generated = ROOT / "apps/macos/Generated"
+    run("swiftc", "-parse-as-library", "-swift-version", "6",
+        "-strict-concurrency=complete", "-warnings-as-errors",
+        "-target", f"{platform.machine()}-apple-macos{config['deploymentTarget']}",
+        "-module-cache-path", str(output / "ModuleCache.noindex"),
+        "-Xcc", f"-fmodule-map-file={generated / 'kernel_ffiFFI.modulemap'}",
+        str(generated / "kernel_ffi.swift"), str(smoke),
+        str(ROOT / "target/release/libkernel_ffi.a"), "-o", str(executable), env=build_env)
+    run(str(executable), kernel_version(env=build_env), env=build_env)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["doctor", "format", "lint", "typecheck", "test",
-                                           "smoke", "bindings", "swift-format", "macos-build"])
+                                           "smoke", "bindings", "swift-format", "macos-build",
+                                           "macos-smoke"])
     parser.add_argument("--check", action="store_true", help="check formatting without editing")
     args = parser.parse_args()
     if args.check and args.command not in {"format", "swift-format"}:
@@ -109,10 +148,7 @@ def main():
             run(sys.executable, "scripts/test_git_policy.py")
         elif args.command == "smoke":
             output = run("cargo", "run", "--locked", "--quiet", "-p", "kernel-probe", capture=True)
-            metadata = json.loads(run("cargo", "metadata", "--locked", "--no-deps",
-                                      "--format-version", "1", capture=True))
-            version = next(package["version"] for package in metadata["packages"]
-                           if package["name"] == "kernel")
+            version = kernel_version()
             expected = f"ctsf-kernel version={version} contract=setup.v1 health=ready\n"
             if output != expected:
                 raise ValueError(f"probe output mismatch: {output!r}")
@@ -121,6 +157,8 @@ def main():
             bindings()
         elif args.command == "swift-format":
             swift_format(args.check)
+        elif args.command == "macos-smoke":
+            macos_smoke()
         else:
             macos_build()
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
