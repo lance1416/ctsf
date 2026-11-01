@@ -1,0 +1,2 @@
+Deterministic planner fixture. Planning must not change this content.
+空格 中文 $HOME * ? [x] ; : remain literal file data.

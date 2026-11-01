@@ -130,6 +130,11 @@ interface or native CI job.
 ## Build and checks
 
 `format`, `lint`, `typecheck`, `test` and `smoke` check Rust on macOS/Linux.
+After workspace and Git policy tests, `test` explicitly builds `kernel-probe` and
+runs `tests/planner/acceptance.py` against that executable. Cargo build artifacts
+and locked metadata supply its path and expected kernel version. The same command
+runs in both Rust CI jobs; any acceptance failure fails `test`. The ignored report
+is `build/planner-acceptance.json`, with probe SHA-256 evidence from the QA runner.
 `bindings` builds the host Rust FFI static/dynamic libraries and runs this workspace's
 version-matched generator. Generated Swift/header/modulemap files go to
 `apps/macos/Generated/`; the app must link `target/release/libkernel_ffi.a`.
