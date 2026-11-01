@@ -1,4 +1,12 @@
-//! Pure setup queries. Ready does not imply an available transfer engine.
+//! Setup queries and local invocation planning, without engine execution.
+//! Ready does not imply an available transfer engine.
+
+mod planner;
+
+pub use planner::{
+    EngineCheck, InvocationPlan, LocalPath, PathCheck, PlanningError, PlanningErrorCode, Task,
+    TaskOption, build_local_plan, parse_task_json, validate_task,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelInfo {

@@ -2,8 +2,9 @@
 
 CTSF is starting with a shared Rust kernel and a macOS native interface. This setup
 provides stateless version/health queries, a headless probe, and a native SwiftUI
-application connected through UniFFI. It does not execute transfers. Linux GUI,
-persistence, scheduling and backup are outside this stage.
+application connected through UniFFI. The kernel also validates local tasks and
+creates argument plans under `planner.v1`. It does not execute transfers. Native
+planner UI, Linux GUI, persistence, scheduling and backup are outside this stage.
 
 ## Requirements
 
@@ -39,6 +40,95 @@ must not exist; when placed inside this repository, use ignored `build/`.
 It copies Git-visible working files without staging or writing Git metadata and
 records SHA-256 per source file. It excludes ignored docs and build caches.
 
+## Local invocation planner
+
+The headless probe accepts `plan <task-json-path>`. Prepare a UTF-8 JSON task file
+using this example, replacing the source and destination with existing, separate
+local directories. All three task paths must be absolute. The engine path can be
+nonexistent: this stage does not inspect or execute it.
+
+```json
+{
+  "schemaVersion": 1,
+  "kind": "rsync.task.pot",
+  "taskId": "local-plan-example",
+  "revision": 1,
+  "name": "Local planning example",
+  "engineExecutable": "/not-installed/rsync",
+  "source": {"raw": "/absolute/path/to/源 目录/"},
+  "destination": {"raw": "/absolute/path/to/target/"},
+  "options": [{"kind": "recursive"}]
+}
+```
+
+From the repository root, build first, then invoke the binary directly so Cargo
+diagnostics are separate from the probe's machine-readable streams:
+
+```sh
+cargo build --locked -p kernel-probe
+./target/debug/kernel-probe plan /absolute/path/to/task.json
+```
+
+With no arguments, `./target/debug/kernel-probe` retains the single-line
+`setup.v1` version/health output. Planning uses this stream/exit contract:
+
+| Result | Exit | stdout | stderr |
+|---|---|---|---|
+| Directory checks and planning succeed | 0 | One `InvocationPlan` JSON object and newline | Empty |
+| Expected input, task-file or path error | 2 | Empty | One `PlanningError` JSON object and newline |
+
+Unexpected failures also exit nonzero. Exit 0 means a parameter plan was built;
+it does not mean a transfer or a real Dry Run succeeded. The successful JSON has
+these fields:
+
+| Field | Meaning |
+|---|---|
+| `contractVersion` | `"planner.v1"` |
+| `taskSnapshot` | An owned copy of the validated task |
+| `executable` | The original `engineExecutable` string |
+| `runArgv` | `["--recursive", "--", source.raw, destination.raw]` for the example |
+| `dryRunArgv` | `["--recursive", "--dry-run", "--", source.raw, destination.raw]` |
+| `pathCheck` | `"checked_at_planning"` |
+| `engineCheck` | `"not_performed"` |
+
+In the argument descriptions above, `source.raw` and `destination.raw` each stand
+for one complete string token, including spaces, Chinese text, literal shell
+characters and trailing `/`. Neither array includes the executable. The only
+Run/Dry Run difference is the inserted `--dry-run` token. No shell command is
+constructed or run.
+
+An error object contains `code`, nullable `field`, explanatory `message` and
+nullable `osCode`. Handle the code/field instead of parsing the message. For
+example, the same-directory error has `code="unsafe_path_relation"` and
+`field="destination.raw"`. Error codes are `invalid_json`, `unsupported_schema`,
+`invalid_task`, `invalid_path`, `unsafe_path_relation`, `path_access_denied` and
+`path_io`. Task-file errors identify `taskFile`; usage errors identify `arguments`.
+
+Tasks are limited to 64 KiB of UTF-8 JSON, with all fields required. Unknown,
+duplicate, missing or wrongly typed fields and unknown options are rejected.
+`schemaVersion` must be 1 and `revision` at least 1. `taskId` is 1–128 UTF-8 bytes
+and `name` 1–256; neither may be all whitespace or contain NUL.
+`options` must contain exactly one `recursive` or `archive` object, with no extra
+fields; archive substitutes `--archive` in both arrays. Paths are 1–4096 UTF-8
+bytes, absolute and NUL-free. The planner does not trim or expand paths, or alter
+trailing slashes. JSON round trips preserve values and array order, not formatting
+or object-key order.
+
+Planning reads source/destination directory metadata and resolves top-level
+aliases for checks. It rejects roots, missing/non-directory paths, identical
+directories and nesting in either direction, including symlink aliases. Resolved
+paths are not substituted into argv. Checks do not create directories, write
+files, probe write access or execute the engine. A successful check records the
+filesystem state at planning time; it does not lock directories or authorize a
+future execution. Engine capability and permissions remain unchecked.
+
+This stage adds no process runner, runtime, execution IDs, cancellation, execution logs,
+SSH, deletion/filter/bandwidth options, `--stats` or `--itemize-changes`. The task
+kind does not imply those future capabilities are implemented. The existing native health window remains available; planning adds no new native
+interface or native CI job.
+
+## Build and checks
+
 `format`, `lint`, `typecheck`, `test` and `smoke` check Rust on macOS/Linux.
 `bindings` builds the host Rust FFI static/dynamic libraries and runs this workspace's
 version-matched generator. Generated Swift/header/modulemap files go to
@@ -60,7 +150,7 @@ bindings, user IDE state, and `docs/` are ignored; shared schemes remain trackab
 Build instructions and generation do not depend on `docs/`.
 
 Git rules and the optional explicit hook install are in CONTRIBUTING.md. No hook or
-Git configuration is automatically installed. Setup does not configure remotes;
+Git configuration is automatically installed. Setup does not configure remotes.
 Project agents may push validated changes; the project lead coordinates pushes.
 All other remote writes remain reserved for Lance. Small changes integrate into
 `main` after validation; features require Lance's acceptance before integration.
