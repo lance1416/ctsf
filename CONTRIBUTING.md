@@ -44,6 +44,26 @@ Missing required history is an error, never a silent success.
 Run the checks in README before proposing changes. `docs/` is intentionally ignored;
 do not force-add it or add an unignore rule. The source build must work without it.
 
+## Dependency versions
+
+Before adding or changing a dependency, verify its published versions and relevant
+compatibility requirements online using the official registry, release notes or
+upstream documentation. Do not select versions from memory or assume a cached
+version is current. Record the checked version, official source and verification
+date in the change's configuration, documentation or review evidence.
+
+Prefer readable SemVer versions and official version tags over commit hashes or
+image digests when available. GitHub Actions use published version tags, such as
+`actions/checkout@v7.0.1`. Explicit numeric toolchain versions and exact Cargo SemVer
+requirements are also readable version declarations. If a required revision has
+no published version, document why a hash is necessary and its official source.
+
+Keep `Cargo.lock` and its integrity checksums. Source/artifact evidence hashes and
+Git commit IDs still identify content or history; they are not dependency version
+declarations. Dependency updates must pass the relevant build and CI checks.
+
+## Dependency automation
+
 Lance configured `origin` as `git@github.com:lance1416/ctsf.git`.
 Dependabot configuration monitors Cargo, GitHub Actions and the Rust toolchain
 weekly, Monday 09:00 Europe/London, with up to three version-update PRs per ecosystem.
