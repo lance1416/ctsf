@@ -1,0 +1,10 @@
+{
+  "recursive": {
+    "runArgv": ["--recursive", "--", "@SOURCE@", "@DESTINATION@"],
+    "dryRunArgv": ["--recursive", "--dry-run", "--", "@SOURCE@", "@DESTINATION@"]
+  },
+  "archive": {
+    "runArgv": ["--archive", "--", "@SOURCE@", "@DESTINATION@"],
+    "dryRunArgv": ["--archive", "--dry-run", "--", "@SOURCE@", "@DESTINATION@"]
+  }
+}

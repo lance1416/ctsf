@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "rsync.task.pot",
+  "taskId": "qa-archive",
+  "revision": 1,
+  "name": "QA Archive 规划",
+  "engineExecutable": "@ENGINE@",
+  "source": { "raw": "@SOURCE@" },
+  "destination": { "raw": "@DESTINATION@" },
+  "options": [{ "kind": "archive" }]
+}

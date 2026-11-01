@@ -65,14 +65,49 @@ def macos_config():
     return config
 
 
-def kernel_version(env=None):
-    metadata = json.loads(run("cargo", "metadata", "--locked", "--no-deps",
-                              "--format-version", "1", capture=True, env=env))
+def cargo_metadata(env=None):
+    return json.loads(run("cargo", "metadata", "--locked", "--no-deps",
+                          "--format-version", "1", capture=True, env=env))
+
+
+def kernel_version(env=None, *, metadata=None):
+    if metadata is None:
+        metadata = cargo_metadata(env=env)
     version = next((package["version"] for package in metadata["packages"]
                     if package["name"] == "kernel"), None)
     if version is None:
         raise ValueError("Cargo metadata does not contain the kernel package")
     return version
+
+
+def planner_acceptance():
+    try:
+        output = run("cargo", "build", "--locked", "-p", "kernel-probe",
+                     "--message-format=json-render-diagnostics", capture=True)
+    except subprocess.CalledProcessError as error:
+        if error.stderr:
+            print(error.stderr, file=sys.stderr, end="")
+        raise
+    metadata = cargo_metadata()
+    target_directory = Path(metadata["target_directory"]).resolve()
+    probes = set()
+    for line in output.splitlines():
+        artifact = json.loads(line)
+        if (artifact.get("reason") == "compiler-artifact"
+                and artifact["target"]["name"] == "kernel-probe"
+                and "bin" in artifact["target"]["kind"]
+                and artifact.get("executable")):
+            probe = Path(artifact["executable"]).resolve()
+            if not probe.is_relative_to(target_directory):
+                raise ValueError("built probe is outside Cargo's target_directory")
+            probes.add(probe)
+    if len(probes) != 1:
+        raise ValueError("Cargo build did not identify exactly one kernel-probe executable")
+    report = ROOT / "build/planner-acceptance.json"
+    report.parent.mkdir(parents=True, exist_ok=True)
+    run(sys.executable, str(ROOT / "tests/planner/acceptance.py"),
+        "--probe", str(probes.pop()), "--report", str(report),
+        "--expected-version", kernel_version(metadata=metadata))
 
 
 def macos_build():
@@ -146,6 +181,7 @@ def main():
         elif args.command == "test":
             run("cargo", "test", "--locked", "--workspace")
             run(sys.executable, "scripts/test_git_policy.py")
+            planner_acceptance()
         elif args.command == "smoke":
             output = run("cargo", "run", "--locked", "--quiet", "-p", "kernel-probe", capture=True)
             version = kernel_version()

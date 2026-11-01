@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "rsync.task.pot",
+  "taskId": "qa-recursive",
+  "revision": 1,
+  "name": "QA 本地规划",
+  "engineExecutable": "@ENGINE@",
+  "source": { "raw": "@SOURCE@" },
+  "destination": { "raw": "@DESTINATION@" },
+  "options": [{ "kind": "recursive" }]
+}
