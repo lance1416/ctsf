@@ -5,15 +5,14 @@ import SwiftUI
 struct CTSFSetupApp: App {
     var body: some Scene {
         Window("CTSF Setup", id: "setup") {
-            KernelHealthView()
+            PlannerPreviewView()
         }
-        .defaultSize(width: 460, height: 300)
-        .windowResizability(.contentSize)
+        .defaultSize(width: 820, height: 820)
     }
 }
 
 @MainActor
-private struct KernelHealthView: View {
+struct KernelHealthView: View {
     // setup.v1 queries are stateless and perform no I/O.
     private let info = kernelInfo()
     private let report = health()
@@ -50,7 +49,6 @@ private struct KernelHealthView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
-        .padding(28)
-        .frame(width: 460)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

@@ -8,6 +8,11 @@
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* CTSFSetupApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* CTSFSetupApp.swift */; };
 		A10000000000000000000002 /* kernel_ffi.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* kernel_ffi.swift */; };
+		A10000000000000000000005 /* PlannerValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* PlannerValues.swift */; };
+		A10000000000000000000006 /* PlannerWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* PlannerWorker.swift */; };
+		A10000000000000000000007 /* PlannerCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* PlannerCoordinator.swift */; };
+		A10000000000000000000008 /* PlannerFFI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* PlannerFFI.swift */; };
+		A10000000000000000000009 /* PlannerUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* PlannerUI.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -15,6 +20,11 @@
 		A20000000000000000000002 /* kernel_ffi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Generated/kernel_ffi.swift; sourceTree = SOURCE_ROOT; };
 		A20000000000000000000003 /* libkernel_ffi.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkernel_ffi.a; path = ../../target/release/libkernel_ffi.a; sourceTree = SOURCE_ROOT; };
 		A20000000000000000000004 /* CTSFSetup.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CTSFSetup.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000005 /* PlannerValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PlannerValues.swift; sourceTree = SOURCE_ROOT; };
+		A20000000000000000000006 /* PlannerWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PlannerWorker.swift; sourceTree = SOURCE_ROOT; };
+		A20000000000000000000007 /* PlannerCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PlannerCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		A20000000000000000000008 /* PlannerFFI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PlannerFFI.swift; sourceTree = SOURCE_ROOT; };
+		A20000000000000000000009 /* PlannerUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/PlannerUI.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,6 +41,11 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000001 /* CTSFSetupApp.swift */,
+				A20000000000000000000005 /* PlannerValues.swift */,
+				A20000000000000000000006 /* PlannerWorker.swift */,
+				A20000000000000000000007 /* PlannerCoordinator.swift */,
+				A20000000000000000000008 /* PlannerFFI.swift */,
+				A20000000000000000000009 /* PlannerUI.swift */,
 				A20000000000000000000002 /* kernel_ffi.swift */,
 				A20000000000000000000003 /* libkernel_ffi.a */,
 				A40000000000000000000002 /* Products */,
@@ -97,6 +112,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000001 /* CTSFSetupApp.swift in Sources */,
+				A10000000000000000000005 /* PlannerValues.swift in Sources */,
+				A10000000000000000000006 /* PlannerWorker.swift in Sources */,
+				A10000000000000000000007 /* PlannerCoordinator.swift in Sources */,
+				A10000000000000000000008 /* PlannerFFI.swift in Sources */,
+				A10000000000000000000009 /* PlannerUI.swift in Sources */,
 				A10000000000000000000002 /* kernel_ffi.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
