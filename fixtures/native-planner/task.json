@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "rsync.task.pot",
+  "taskId": "qa-native-plan",
+  "revision": 18446744073709551615,
+  "name": "QA 中文 e\u0301",
+  "engineExecutable": "@ENGINE@",
+  "source": { "raw": "@SOURCE@" },
+  "destination": { "raw": "@DESTINATION@" },
+  "options": [{ "kind": "recursive" }]
+}

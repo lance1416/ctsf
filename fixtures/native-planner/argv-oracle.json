@@ -1,0 +1,10 @@
+{
+  "recursive": {
+    "run": ["--recursive", "--", "@SOURCE@", "@DESTINATION@"],
+    "dryRun": ["--recursive", "--dry-run", "--", "@SOURCE@", "@DESTINATION@"]
+  },
+  "archive": {
+    "run": ["--archive", "--", "@SOURCE@", "@DESTINATION@"],
+    "dryRun": ["--archive", "--dry-run", "--", "@SOURCE@", "@DESTINATION@"]
+  }
+}

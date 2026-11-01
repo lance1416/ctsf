@@ -3,8 +3,9 @@
 CTSF is starting with a shared Rust kernel and a macOS native interface. This setup
 provides stateless version/health queries, a headless probe, and a native SwiftUI
 application connected through UniFFI. The kernel also validates local tasks and
-creates argument plans under `planner.v1`. It does not execute transfers. Native
-planner UI, Linux GUI, persistence, scheduling and backup are outside this stage.
+creates argument plans under `planner.v1`. This feature adds a native planning
+form and parameter preview through typed UniFFI. It does not execute transfers.
+Linux GUI, persistence, scheduling and backup are outside this stage.
 
 ## Requirements
 
@@ -31,6 +32,7 @@ python3 scripts/dev.py bindings
 python3 scripts/dev.py swift-format --check
 python3 scripts/dev.py macos-build
 python3 scripts/dev.py macos-smoke
+python3 scripts/dev.py macos-planner-smoke
 python3 scripts/git_policy.py local
 ```
 
@@ -124,8 +126,11 @@ future execution. Engine capability and permissions remain unchecked.
 
 This stage adds no process runner, runtime, execution IDs, cancellation, execution logs,
 SSH, deletion/filter/bandwidth options, `--stats` or `--itemize-changes`. The task
-kind does not imply those future capabilities are implemented. The existing native health window remains available; planning adds no new native
-interface or native CI job.
+kind does not imply those future capabilities are implemented. The native form
+submits typed tasks to a serial worker, then displays both returned argv arrays.
+Editing invalidates the preview and disables copying; valid Copy actions encode
+the returned executable/arguments as JSON. The existing library health display
+remains separate from engine readiness. Run/Dry Run labels describe plans only.
 
 ## Build and checks
 
@@ -140,8 +145,9 @@ version-matched generator. Generated Swift/header/modulemap files go to
 `apps/macos/Generated/`; the app must link `target/release/libkernel_ffi.a`.
 The `.dylib` is only a generation input, not an app runtime dependency.
 
-The native CI job runs the same `swift-format --check`, `macos-build` and
-`macos-smoke` commands. The first checks handwritten Swift style; the second
+The native CI job runs the same `swift-format --check`, `macos-build`,
+`macos-smoke` and `macos-planner-smoke` commands. The first checks handwritten Swift
+under `apps/macos` and `tests/native-planner`; the second
 regenerates bindings and compiles both handwritten and generated Swift, including
 type/concurrency checks. The smoke statically links the Swift bridge and checks
 the actual kernel version, setup contract and health, repeating both queries 100
@@ -191,3 +197,17 @@ complete concurrency checking. It uses the same deployment target and host
 architecture as the app build. Its executable is `build/macos/KernelBridgeSmoke`;
 build, assertion or execution failures return nonzero. This checks bridge values
 without GUI automation and does not establish leak freedom.
+
+`macos-planner-smoke` independently regenerates bindings, then statically compiles
+the generated Swift, four production planner value/worker/coordinator/FFI sources
+and the three explicit QA harness sources. It excludes the SwiftUI App/UI and uses
+the same deployment target, host architecture and strict Swift 6 settings. The
+full typed-bridge and production-worker/coordinator gate receives the absolute
+`fixtures/native-planner` path and kernel version from Cargo metadata; `--typed-only`
+is a diagnostic mode and is not used by this command or CI.
+
+The JSON report is written to `build/macos/native-planner-report.json`. Missing
+sources, compilation/execution failures, failed checks or invalid report JSON
+return nonzero. Any `UNVERIFIED` checks remain explicit as `PASS_WITH_LIMITATIONS`
+in the report. This harness does not replace GUI accessibility or visual acceptance;
+running the command is required before claiming its checks have passed.

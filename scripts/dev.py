@@ -37,11 +37,14 @@ def bindings(env=None):
 
 def swift_format(check):
     macos()
-    files = sorted(path for path in (ROOT / "apps/macos").rglob("*.swift")
-                   if not any(part in {"Generated", "DerivedData", "build"}
-                              for part in path.parts))
-    if not files:
-        raise ValueError("SETUP-C required: no handwritten macOS Swift sources exist")
+    files = []
+    for source_root in (ROOT / "apps/macos", ROOT / "tests/native-planner"):
+        sources = sorted(path for path in source_root.rglob("*.swift")
+                         if not any(part in {"Generated", "DerivedData", "build"}
+                                    for part in path.relative_to(source_root).parts))
+        if not sources:
+            raise ValueError(f"no handwritten Swift sources exist in {source_root}")
+        files.extend(sources)
     if check:
         run("swift", "format", "lint", "--strict", "--configuration",
             str(ROOT / ".swift-format"), *map(str, files))
@@ -149,11 +152,81 @@ def macos_smoke():
     run(str(executable), kernel_version(env=build_env), env=build_env)
 
 
+def write_native_planner_report(output, path):
+    report = json.loads(output)
+    if (not isinstance(report, dict)
+            or report.get("scope") != "real-typed-bridge-and-production-worker-coordinator"):
+        raise ValueError("expected the full native planner acceptance report")
+    checks = report.get("checks")
+    if not isinstance(checks, list) or not checks:
+        raise ValueError("native planner report contains no checks")
+    statuses = []
+    for check in checks:
+        if not isinstance(check, dict) or check.get("status") not in {"PASS", "FAIL", "UNVERIFIED"}:
+            raise ValueError("native planner report contains an invalid check status")
+        statuses.append(check["status"])
+    expected = ("FAIL" if "FAIL" in statuses else
+                "PASS_WITH_LIMITATIONS" if "UNVERIFIED" in statuses else "PASS")
+    if report.get("status", expected) != expected:
+        raise ValueError("native planner report status does not match its checks")
+    report["status"] = expected
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    print(output, end="" if output.endswith("\n") else "\n")
+    print(f"Native planner report: {path}")
+    return expected
+
+
+def macos_planner_smoke():
+    config = macos_config()
+    output = ROOT / "build/macos"
+    output.mkdir(parents=True, exist_ok=True)
+    report_path = output / "native-planner-report.json"
+    report_path.unlink(missing_ok=True)
+    sources = [ROOT / name for name in (
+        "apps/macos/Sources/PlannerValues.swift",
+        "apps/macos/Sources/PlannerWorker.swift",
+        "apps/macos/Sources/PlannerCoordinator.swift",
+        "apps/macos/Sources/PlannerFFI.swift",
+        "tests/native-planner/TypedBridgeChecks.swift",
+        "tests/native-planner/GateChecks.swift",
+        "tests/native-planner/NativePlannerAcceptance.swift",
+    )]
+    for source in sources:
+        if not source.is_file():
+            raise ValueError(f"native planner smoke source is missing: {source}")
+    fixtures = ROOT / "fixtures/native-planner"
+    if not fixtures.is_dir():
+        raise ValueError(f"native planner fixtures are missing: {fixtures}")
+    build_env = os.environ.copy()
+    build_env["MACOSX_DEPLOYMENT_TARGET"] = config["deploymentTarget"]
+    bindings(env=build_env)
+    executable = output / "NativePlannerAcceptance"
+    generated = ROOT / "apps/macos/Generated"
+    run("swiftc", "-parse-as-library", "-swift-version", "6",
+        "-strict-concurrency=complete", "-warnings-as-errors",
+        "-target", f"{platform.machine()}-apple-macos{config['deploymentTarget']}",
+        "-module-cache-path", str(output / "ModuleCache.noindex"),
+        "-Xcc", f"-fmodule-map-file={generated / 'kernel_ffiFFI.modulemap'}",
+        str(generated / "kernel_ffi.swift"), *map(str, sources),
+        str(ROOT / "target/release/libkernel_ffi.a"), "-o", str(executable), env=build_env)
+    try:
+        report = run(str(executable), str(fixtures), kernel_version(env=build_env),
+                     capture=True, env=build_env)
+    except subprocess.CalledProcessError as error:
+        if error.stderr:
+            print(error.stderr, file=sys.stderr, end="")
+        if error.stdout:
+            write_native_planner_report(error.stdout, report_path)
+        raise
+    if write_native_planner_report(report, report_path) == "FAIL":
+        raise ValueError("native planner acceptance reported failed checks")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["doctor", "format", "lint", "typecheck", "test",
                                            "smoke", "bindings", "swift-format", "macos-build",
-                                           "macos-smoke"])
+                                           "macos-smoke", "macos-planner-smoke"])
     parser.add_argument("--check", action="store_true", help="check formatting without editing")
     args = parser.parse_args()
     if args.check and args.command not in {"format", "swift-format"}:
@@ -195,6 +268,8 @@ def main():
             swift_format(args.check)
         elif args.command == "macos-smoke":
             macos_smoke()
+        elif args.command == "macos-planner-smoke":
+            macos_planner_smoke()
         else:
             macos_build()
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
