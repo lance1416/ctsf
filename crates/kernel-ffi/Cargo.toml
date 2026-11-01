@@ -1,0 +1,15 @@
+[package]
+name = "kernel-ffi"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+kernel.workspace = true
+uniffi.workspace = true
+
+[lints]
+workspace = true

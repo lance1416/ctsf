@@ -1,0 +1,7 @@
+{
+  "message": ["python3", "{project_root}/scripts/git_policy.py", "message", "{message_file}"],
+  "branch": ["python3", "{project_root}/scripts/git_policy.py", "branch", "{branch}"],
+  "history": ["python3", "{project_root}/scripts/git_policy.py", "history", "{head}", "--base", "{base}"],
+  "history_root": ["python3", "{project_root}/scripts/git_policy.py", "history", "{head}"],
+  "rejected_exit_codes": [1]
+}
