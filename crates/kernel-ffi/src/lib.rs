@@ -1,4 +1,12 @@
-//! UniFFI adapter for the setup-only, stateless kernel API.
+//! Typed UniFFI adapters for stateless setup queries and local planning.
+
+mod planner;
+
+pub use planner::{
+    PlannerBridgeError, PlannerEngineCheck, PlannerErrorCode, PlannerInvocationPlan,
+    PlannerLocalPath, PlannerPathCheck, PlannerTask, PlannerTaskOption, build_local_plan,
+    parse_task_json,
+};
 
 uniffi::setup_scaffolding!();
 
