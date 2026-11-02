@@ -94,12 +94,62 @@ fn setup_health() -> ExitCode {
     ExitCode::SUCCESS
 }
 
+fn engine_response(
+    result: Result<kernel::EngineProbeReport, kernel::EngineProbeError>,
+) -> ExitCode {
+    let failed = result.is_err();
+    let value = match result {
+        Ok(report) => {
+            serde_json::json!({"contractVersion":"engine-probe.v1", "status":"ok", "report":report, "error":null})
+        }
+        Err(error) => {
+            serde_json::json!({"contractVersion":"engine-probe.v1", "status":"error", "report":error.partial_report, "error":{
+                "code":error.code, "step":error.step, "message":error.message, "osCode":error.os_code
+            }})
+        }
+    };
+    let Ok(json) = serde_json::to_string(&value) else {
+        return ExitCode::FAILURE;
+    };
+    let written = if failed {
+        writeln!(io::stderr().lock(), "{json}")
+    } else {
+        writeln!(io::stdout().lock(), "{json}")
+    };
+    if written.is_err() {
+        ExitCode::FAILURE
+    } else if failed {
+        ExitCode::from(2)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn invalid_engine_arguments() -> ExitCode {
+    engine_response(Err(kernel::EngineProbeError {
+        code: kernel::EngineProbeErrorCode::InvalidEnginePath,
+        step: None,
+        message: "usage: kernel-probe inspect-engine <absolute-executable>".into(),
+        os_code: None,
+        partial_report: None,
+    }))
+}
+
 fn main() -> ExitCode {
     let mut arguments = std::env::args_os().skip(1);
     let Some(command) = arguments.next() else {
         return setup_health();
     };
     let path = arguments.next();
+    if command == "inspect-engine" {
+        if arguments.next().is_some() {
+            return invalid_engine_arguments();
+        }
+        let Some(path) = path.and_then(|path| path.into_string().ok()) else {
+            return invalid_engine_arguments();
+        };
+        return engine_response(kernel::inspect_engine(&path));
+    }
     if command != "plan" || path.is_none() || arguments.next().is_some() {
         return report_error(error(
             PlanningErrorCode::InvalidTask,

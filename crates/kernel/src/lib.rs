@@ -1,7 +1,12 @@
-//! Setup queries and local invocation planning, without engine execution.
+//! Setup queries, local planning and controlled engine inspection without transfers.
 //! Ready does not imply an available transfer engine.
 
+#[cfg(unix)]
+mod engine_probe;
 mod planner;
+
+#[cfg(unix)]
+pub use engine_probe::*;
 
 pub use planner::{
     EngineCheck, InvocationPlan, LocalPath, PathCheck, PlanningError, PlanningErrorCode, Task,

@@ -244,3 +244,99 @@ fn task_file_path_itself_can_be_non_utf8() {
         Some(0)
     );
 }
+
+#[cfg(unix)]
+fn engine_fixture(fixture: &Fixture, body: &str) -> PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let path = fixture.root.join("engine 中文");
+    fs::write(&path, format!("#!/bin/sh\n{body}")).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+    path
+}
+
+#[cfg(unix)]
+#[test]
+fn engine_usage_and_path_errors_have_one_error_envelope() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+    for arguments in [
+        vec!["inspect-engine"],
+        vec!["inspect-engine", "/engine", "extra"],
+        vec!["inspect-engine", "relative"],
+    ] {
+        let output = probe().args(arguments).output().unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        let stderr = std::str::from_utf8(&output.stderr).unwrap();
+        assert_eq!(stderr.lines().count(), 1);
+        let value: serde_json::Value = serde_json::from_str(stderr).unwrap();
+        assert_eq!(value["contractVersion"], "engine-probe.v1");
+        assert_eq!(value["status"], "error");
+        assert!(value["report"].is_null());
+        assert_eq!(value["error"]["code"], "invalid_engine_path");
+        assert!(value["error"]["step"].is_null());
+        assert!(value["error"].get("partialReport").is_none());
+    }
+    let output = probe()
+        .arg("inspect-engine")
+        .arg(OsStr::from_bytes(b"/tmp/engine-\xff"))
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn engine_success_envelope_contains_typed_report_and_no_error() {
+    let fixture = Fixture::new();
+    let path = engine_fixture(
+        &fixture,
+        "case \"$1\" in\n--version) printf 'openrsync: protocol version 29\\nrsync version 2.6.9 compatible\\n';;\n--help) printf 'usage only\\n';;\nesac\n",
+    );
+    let output = probe().arg("inspect-engine").arg(path).output().unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    assert!(output.stderr.is_empty());
+    let stdout = std::str::from_utf8(&output.stdout).unwrap();
+    assert_eq!(stdout.lines().count(), 1);
+    let value: serde_json::Value = serde_json::from_str(stdout).unwrap();
+    assert_eq!(value["status"], "ok");
+    assert!(value["error"].is_null());
+    let report: kernel::EngineProbeReport =
+        serde_json::from_value(value["report"].clone()).unwrap();
+    assert_eq!(report.identity.kind, kernel::EngineKind::Openrsync);
+    assert_eq!(report.identity.implementation_version, None);
+    assert_eq!(
+        report.identity.compatibility_version.as_deref(),
+        Some("2.6.9")
+    );
+    assert_eq!(report.commands.len(), 2);
+    assert!(
+        report
+            .capabilities
+            .iter()
+            .all(|cap| cap.status == kernel::CapabilityStatus::Unknown)
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn engine_nonzero_error_keeps_partial_report_without_nested_report_duplication() {
+    let fixture = Fixture::new();
+    let path = engine_fixture(
+        &fixture,
+        "case \"$1\" in\n--version) printf 'rsync  version 3.4.1  protocol version 32\\n';;\n--help) exit 7;;\nesac\n",
+    );
+    let output = probe().arg("inspect-engine").arg(path).output().unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    let stderr = std::str::from_utf8(&output.stderr).unwrap();
+    assert_eq!(stderr.lines().count(), 1);
+    let value: serde_json::Value = serde_json::from_str(stderr).unwrap();
+    assert_eq!(value["error"]["code"], "non_zero_exit");
+    assert_eq!(value["error"]["step"], "help");
+    assert!(value["error"].get("partialReport").is_none());
+    assert_eq!(value["report"]["commands"].as_array().unwrap().len(), 2);
+    assert_eq!(value["report"]["identity"]["kind"], "rsync");
+    assert_eq!(value["report"]["commands"][1]["exitCode"], 7);
+}
