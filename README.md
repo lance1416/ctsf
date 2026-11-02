@@ -4,7 +4,8 @@ CTSF is starting with a shared Rust kernel and a macOS native interface. This se
 provides stateless version/health queries, a headless probe, and a native SwiftUI
 application connected through UniFFI. The kernel also validates local tasks and
 creates argument plans under `planner.v1`. This feature adds a native planning
-form and parameter preview through typed UniFFI. It does not execute transfers.
+form and parameter preview through typed UniFFI. The headless probe also inspects
+an explicitly selected engine under `engine-probe.v1`. It does not execute transfers.
 Linux GUI, persistence, scheduling and backup are outside this stage.
 
 ## Requirements
@@ -28,6 +29,7 @@ python3 scripts/dev.py lint
 python3 scripts/dev.py typecheck
 python3 scripts/dev.py test
 python3 scripts/dev.py smoke
+python3 scripts/dev.py engine-probe-acceptance --engine /usr/bin/rsync
 python3 scripts/dev.py bindings
 python3 scripts/dev.py swift-format --check
 python3 scripts/dev.py macos-build
@@ -132,6 +134,35 @@ Editing invalidates the preview and disables copying; valid Copy actions encode
 the returned executable/arguments as JSON. The existing library health display
 remains separate from engine readiness. Run/Dry Run labels describe plans only.
 
+## Controlled engine inspection
+
+The headless probe accepts an explicit absolute engine path:
+
+```sh
+cargo build --locked -p kernel-probe
+./target/debug/kernel-probe inspect-engine /usr/bin/rsync
+```
+
+It runs only `--version` followed by `--help`, without source/destination arguments
+or a shell. Both steps have bounded stdout/stderr capture and share a three-second
+runtime deadline, with separate cleanup budgets. This is a short synchronous
+inspection; it adds no runtime, transfer, cancellation API or native UI action.
+
+Successful observation writes one `engine-probe.v1` JSON envelope to stdout and
+exits 0: `status` is `ok`, `report` contains identity/capability/command evidence,
+and `error` is null. A probe error exits 2 with one envelope on stderr, empty stdout,
+`status="error"`, structured error details and any partial report. A successful
+observation can still have unknown implementation or capabilities; it does not
+approve an engine for transfer. Cleanup failures must not appear as success.
+
+The report distinguishes implementation version, compatibility version and
+protocol version. Apple openrsync's `2.6.9 compatible` banner is not a GNU rsync
+implementation version. Capabilities cover only `--recursive`, `--archive`,
+`--dry-run` and `--`, using explicit help evidence; absent long-option evidence
+remains unknown, including compact short-option usage. No transfer or real Dry Run
+is attempted. Existing planner results continue to say `engineCheck=not_performed`;
+inspection is a separate operation and does not change planner semantics.
+
 ## Build and checks
 
 `format`, `lint`, `typecheck`, `test` and `smoke` check Rust on macOS/Linux.
@@ -140,6 +171,14 @@ runs `tests/planner/acceptance.py` against that executable. Cargo build artifact
 and locked metadata supply its path and expected kernel version. The same command
 runs in both Rust CI jobs; any acceptance failure fails `test`. The ignored report
 is `build/planner-acceptance.json`, with probe SHA-256 evidence from the QA runner.
+The Rust CI jobs separately run `engine-probe-acceptance` against `/usr/bin/rsync`.
+That standalone command also accepts `--engine /absolute/path/to/rsync`; omitting
+the option still selects `/usr/bin/rsync`, never an implicit PATH lookup. It builds
+the real probe using locked Cargo metadata/artifacts and runs the independent QA
+runner. Missing engines or test sources fail; the command does not install an
+engine or skip acceptance. It removes the previous ignored
+`build/engine-probe-acceptance.json` before running and requires fresh, nonempty,
+all-PASS checks. Existing planner and native smoke commands remain separate.
 `bindings` builds the host Rust FFI static/dynamic libraries and runs this workspace's
 version-matched generator. Generated Swift/header/modulemap files go to
 `apps/macos/Generated/`; the app must link `target/release/libkernel_ffi.a`.

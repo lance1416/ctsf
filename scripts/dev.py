@@ -2,6 +2,7 @@
 """Shared local/CI checks. Missing prerequisites always fail."""
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -83,7 +84,7 @@ def kernel_version(env=None, *, metadata=None):
     return version
 
 
-def planner_acceptance():
+def build_probe():
     try:
         output = run("cargo", "build", "--locked", "-p", "kernel-probe",
                      "--message-format=json-render-diagnostics", capture=True)
@@ -106,11 +107,81 @@ def planner_acceptance():
             probes.add(probe)
     if len(probes) != 1:
         raise ValueError("Cargo build did not identify exactly one kernel-probe executable")
+    return probes.pop(), metadata
+
+
+def planner_acceptance():
+    probe, metadata = build_probe()
     report = ROOT / "build/planner-acceptance.json"
     report.parent.mkdir(parents=True, exist_ok=True)
     run(sys.executable, str(ROOT / "tests/planner/acceptance.py"),
-        "--probe", str(probes.pop()), "--report", str(report),
+        "--probe", str(probe), "--report", str(report),
         "--expected-version", kernel_version(metadata=metadata))
+
+
+def require_engine_probe_pass(report_path, probe, engine):
+    report = json.loads(report_path.read_text())
+    if (not isinstance(report, dict) or report.get("schemaVersion") != 1
+            or report.get("suite") != "engine-probe.v1" or report.get("status") != "PASS"):
+        raise ValueError("engine probe acceptance did not report PASS")
+    if "probeExecuted" in report and report["probeExecuted"] is not True:
+        raise ValueError("engine probe acceptance reports that no real probe executed")
+    checks = report.get("checks")
+    if (not isinstance(checks, list) or not checks
+            or any(not isinstance(check, dict) or check.get("status") != "PASS" for check in checks)):
+        raise ValueError("engine probe acceptance requires nonempty, all-PASS checks")
+    ids = [check.get("id") for check in checks]
+    if (any(not isinstance(name, str) or not name for name in ids)
+            or len(set(ids)) != len(ids)
+            or not {"real-installed-engine-mandatory", "probe-binary-unchanged",
+                    "legacy-health-planner-and-no-transfer"}.issubset(ids)):
+        raise ValueError("engine probe acceptance omitted required execution/regression checks")
+    counts = report.get("counts")
+    if (not isinstance(counts, dict) or counts.get("PASS") != len(checks)
+            or counts.get("FAIL") != 0 or counts.get("UNVERIFIED") != 0):
+        raise ValueError("engine probe acceptance counts do not match all-PASS checks")
+    probe_evidence = report.get("probe")
+    if (not isinstance(probe_evidence, dict) or probe_evidence.get("path") != str(probe)
+            or probe_evidence.get("sha256") != hashlib.sha256(probe.read_bytes()).hexdigest()):
+        raise ValueError("acceptance report does not identify the actual built probe")
+    engine_path = Path(engine)
+    real = report.get("realEngine")
+    if (not isinstance(real, dict) or real.get("requestedPath") != str(engine_path)
+            or real.get("resolvedPath") != str(engine_path.resolve())
+            or real.get("sha256") != hashlib.sha256(engine_path.read_bytes()).hexdigest()):
+        raise ValueError("acceptance report does not identify the selected real engine")
+    observation = real.get("observation")
+    if not isinstance(observation, dict) or observation.get("contractVersion") != "engine-probe.v1":
+        raise ValueError("acceptance report contains no real engine observation")
+    observed = observation.get("report")
+    if (not isinstance(observed, dict) or observed.get("requestedExecutable") != str(engine_path)
+            or observed.get("resolvedExecutable") != str(engine_path.resolve())):
+        raise ValueError("real engine observation paths do not match the selected engine")
+    commands = observed.get("commands")
+    if (not isinstance(commands, list) or len(commands) != 2
+            or any(not isinstance(command, dict) or command.get("step") != step
+                   or command.get("argv") != ["--" + step]
+                   for command, step in zip(commands, ("version", "help")))):
+        raise ValueError("real engine version/help commands were not both observed")
+    return report
+
+
+def engine_probe_acceptance(engine):
+    report_path = ROOT / "build/engine-probe-acceptance.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.unlink(missing_ok=True)
+    if not Path(engine).is_absolute():
+        raise ValueError("--engine must be an absolute executable path")
+    if not os.path.isfile(engine) or not os.access(engine, os.X_OK):
+        raise ValueError(f"required engine is missing or not executable: {engine}")
+    runner = ROOT / "tests/engine-probe/acceptance.py"
+    if not runner.is_file():
+        raise ValueError(f"engine probe acceptance runner is missing: {runner}")
+    probe, metadata = build_probe()
+    run(sys.executable, str(runner), "--probe", str(probe), "--engine", engine,
+        "--report", str(report_path), "--expected-version", kernel_version(metadata=metadata))
+    report = require_engine_probe_pass(report_path, probe, engine)
+    print(f"Engine probe acceptance: {len(report['checks'])} checks passed; report: {report_path}")
 
 
 def macos_build():
@@ -226,11 +297,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["doctor", "format", "lint", "typecheck", "test",
                                            "smoke", "bindings", "swift-format", "macos-build",
-                                           "macos-smoke", "macos-planner-smoke"])
+                                           "macos-smoke", "macos-planner-smoke",
+                                           "engine-probe-acceptance"])
     parser.add_argument("--check", action="store_true", help="check formatting without editing")
+    parser.add_argument("--engine",
+                        help="engine-probe-acceptance only; default: /usr/bin/rsync")
     args = parser.parse_args()
     if args.check and args.command not in {"format", "swift-format"}:
         parser.error("--check is only valid for format and swift-format")
+    if args.engine is not None and args.command != "engine-probe-acceptance":
+        parser.error("--engine is only valid for engine-probe-acceptance")
     try:
         if args.command == "doctor":
             print(f"OS: {platform.platform()} / {platform.machine()}")
@@ -270,6 +346,8 @@ def main():
             macos_smoke()
         elif args.command == "macos-planner-smoke":
             macos_planner_smoke()
+        elif args.command == "engine-probe-acceptance":
+            engine_probe_acceptance(args.engine if args.engine is not None else "/usr/bin/rsync")
         else:
             macos_build()
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:

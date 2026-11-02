@@ -1,0 +1,23 @@
+{
+  "rsyncVersion": "rsync  version 3.4.1  protocol version 32\n",
+  "openrsyncVersion": "openrsync: protocol version 29\nrsync version 2.6.9 compatible\n",
+  "openrsyncRelease": "openrsync 0.5.0 (protocol version 27)\n",
+  "fullHelp": "Options:\n -r, --recursive    recurse into directories\n -a, --archive      archive mode\n -n, --dry-run      show what would happen\n --                end of options\n",
+  "mixedHelp": " --recursive       recurse into directories\n --archive         (NOT SUPPORTED)\n --dry-run-extra   similar spelling\n --                stop parsing options\n",
+  "deceptiveHelp": "Usage: rsync [-ran] source destination\n -r                recurse\n --no-recursive    disable recursion\n --recursive-extra extended recursion\n prose mentions --archive and --dry-run\n --other           description mentions --recursive\n --                a long option follows\n",
+  "combinedSeparatorHelp": " --recursive -- end of options\n",
+  "conflictingHelpOut": " --recursive       recurse\n --archive         unsupported\n",
+  "conflictingHelpErr": " --recursive       not supported\n --archive         archive mode\n --dry-run         not supported on this platform\n",
+  "supported": [
+    ["supported", "help_entry"], ["supported", "help_entry"],
+    ["supported", "help_entry"], ["supported", "help_entry"]
+  ],
+  "mixed": [
+    ["supported", "help_entry"], ["unsupported", "explicit_unsupported"],
+    ["unknown", "missing_evidence"], ["supported", "help_entry"]
+  ],
+  "missing": [
+    ["unknown", "missing_evidence"], ["unknown", "missing_evidence"],
+    ["unknown", "missing_evidence"], ["unknown", "missing_evidence"]
+  ]
+}
